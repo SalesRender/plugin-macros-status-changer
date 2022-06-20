@@ -1,0 +1,94 @@
+{
+    "info" : [
+        {
+            "source": "PLUGIN_NAME",
+            "translated": "Массовое перемещение"
+        },
+        {
+            "source": "PLUGIN_DESCRIPTION",
+            "translated": "Позволяет массово перемещать заказы внутри LeadVertex"
+        }
+    ],
+    "process_errors": [
+        {
+            "source": "MAXIMUM_ORDERS_COUNT_EXCEEDED_ERROR {maximumOrdersCount}",
+            "translated": "Количество выбранных заказов превышает максимальное ({maximumOrdersCount})"
+        },
+        {
+            "source": "ORDER_ALREADY_IN_STATUS_ERROR",
+            "translated": "Заказ уже находится в выбранном статусе"
+        },
+        {
+            "source": "PROCESS_UNKNOWN_ERROR {errorMessage}",
+            "translated": "Во время обработки возникла неизвестная ошибка: {errorMessage}"
+        }
+    ],
+    "batch_settings": [
+        {
+            "source": "BATCH_FORM_TITLE",
+            "translated": "Перемещение заказов"
+        },
+        {
+            "source": "BATCH_FORM_DESCRIPTION",
+            "translated": "Параметры перемещения"
+        },
+        {
+            "source": "TARGET_STATUS_FIELD",
+            "translated": "Статус"
+        },
+        {
+            "source": "TARGET_STATUS_FIELD_DESCRIPTION",
+            "translated": "Выберите статус, в который будут перемещены заказы"
+        },
+        {
+            "source": "BATCH_SEND_BUTTON",
+            "translated": "Продолжить"
+        }
+    ],
+    "batch_errors": [
+        {
+            "source": "INVALID_VALUE_ERROR",
+            "translated": "Некорректное значение"
+        },
+        {
+            "source": "STATUS_NOT_SELECTED_ERROR",
+            "translated": "Необходимо выбрать статус"
+        },
+        {
+            "source": "NON_EXISTENT_STATUS_ERROR {status}",
+            "translated": "Выбран несуществующий статус \\\"{status}\\\""
+        }
+    ],
+    "settings": [
+        {
+            "source": "SETTINGS_TITLE",
+            "translated": "Настройки перемещения заказов"
+        },
+        {
+            "source": "SETTINGS_DESCRIPTION",
+            "translated": "Здесь вы можете указать настройки для перемещения заказов"
+        },
+        {
+            "source": "SETTINGS_MAIN_FIELDS_TITLE",
+            "translated": "Основные настройки"
+        },
+        {
+            "source": "MAX_ORDERS_FIELD_NAME",
+            "translated": "Максимум заказов за операцию"
+        },
+        {
+            "source": "MAX_ORDERS_COUNT_FIELD_DESCRIPTION",
+            "translated": "Выберите максимальное количество заказов, которые могут быть перемещены за одну операцию"
+        },
+        {
+            "source": "SETTINGS_SAVE_BUTTON",
+            "translated": "Сохранить настройки"
+        }
+    ],
+    "settings_errors": [
+        {
+            "source": "INVALID_FIELD_VALUE_ERROR {field}",
+            "translated": "Некорректное значение поля {field}"
+        }
+    ]
+}

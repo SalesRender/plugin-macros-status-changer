@@ -1,0 +1,44 @@
+PUT {{host}}/protected/data/batch/1
+Content-Type: application/json
+Accept-Language: ru_RU
+X-PLUGIN-TOKEN: {{token}}
+
+{
+  "options": {
+    "targetStatus": [
+      "5"
+    ]
+  }
+}
+
+###
+
+PUT {{host}}/protected/data/batch/1
+Content-Type: application/json
+Accept-Language: ru_RU
+X-PLUGIN-TOKEN: {{token}}
+
+{
+  "options": {
+    "targetStatus": [
+      "9"
+    ]
+  }
+}
+
+###
+
+PUT {{host}}/protected/data/batch/2
+Content-Type: application/json
+Accept-Language: ru_RU
+X-PLUGIN-TOKEN: {{token}}
+
+{
+  "options": {
+    "targetStatus": [
+      "9"
+    ]
+  }
+}
+
+###

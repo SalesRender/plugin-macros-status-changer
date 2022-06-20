@@ -1,0 +1,29 @@
+{
+  "name": "leadvertex/plugin-move-orders-bulk",
+  "description": "Plugin for bulk orders moving operations",
+  "type": "project",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Timur Kasumov aka XAKEPEHOK",
+      "email": "support@leadvertex.com"
+    },
+    {
+      "name": "LightFuri",
+      "email": "support@leadvertex.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Leadvertex\\Plugin\\Instance\\Excel\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=7.4.0",
+    "ext-json": "*",
+    "box/spout": "^3.1",
+    "leadvertex/plugin-core-macros": "^0.18.0",
+    "leadvertex/plugin-component-purpose": "^1.3"
+  }
+}

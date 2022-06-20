@@ -1,0 +1,94 @@
+{
+    "info" : [
+        {
+            "source": "PLUGIN_NAME",
+            "translated": "Batch move"
+        },
+        {
+            "source": "PLUGIN_DESCRIPTION",
+            "translated": "Allows you to bulk move orders inside LeadVertex"
+        }
+    ],
+    "process_errors": [
+        {
+            "source": "MAXIMUM_ORDERS_COUNT_EXCEEDED_ERROR {maximumOrdersCount}",
+            "translated": "The number of selected orders exceeds the maximum ({maximumOrdersCount})"
+        },
+        {
+            "source": "ORDER_ALREADY_IN_STATUS_ERROR",
+            "translated": "Order already in selected status"
+        },
+        {
+            "source": "PROCESS_UNKNOWN_ERROR {errorMessage}",
+            "translated": "An error occurred while processing: {errorMessage}"
+        }
+    ],
+    "batch_settings": [
+        {
+            "source": "BATCH_FORM_TITLE",
+            "translated": "Move options"
+        },
+        {
+            "source": "BATCH_FORM_DESCRIPTION",
+            "translated": "Order movement options"
+        },
+        {
+            "source": "TARGET_STATUS_FIELD",
+            "translated": "Status"
+        },
+        {
+            "source": "TARGET_STATUS_FIELD_DESCRIPTION",
+            "translated": "Select the status to which orders will be moved"
+        },
+        {
+            "source": "BATCH_SEND_BUTTON",
+            "translated": "Continue"
+        }
+    ],
+    "batch_errors": [
+        {
+            "source": "INVALID_VALUE_ERROR",
+            "translated": "Invalid value"
+        },
+        {
+            "source": "STATUS_NOT_SELECTED_ERROR",
+            "translated": "Status must be selected"
+        },
+        {
+            "source": "NON_EXISTENT_STATUS_ERROR {status}",
+            "translated": "Selected non-existent status \"{status}\""
+        }
+    ],
+    "settings": [
+        {
+            "source": "SETTINGS_TITLE",
+            "translated": "Order movement settings"
+        },
+        {
+            "source": "SETTINGS_DESCRIPTION",
+            "translated": "Here you can specify the settings for orders moving"
+        },
+        {
+            "source": "SETTINGS_MAIN_FIELDS_TITLE",
+            "translated": "Main settings"
+        },
+        {
+            "source": "MAX_ORDERS_FIELD_NAME",
+            "translated": "Maximum orders count per operation"
+        },
+        {
+            "source": "MAX_ORDERS_COUNT_FIELD_DESCRIPTION",
+            "translated": "Select the maximum number of orders that can be moved in one operation"
+        },
+        {
+            "source": "SETTINGS_SAVE_BUTTON",
+            "translated": "Save"
+        }
+    ],
+    "settings_errors": [
+        {
+            "source": "INVALID_FIELD_VALUE_ERROR {field}",
+            "translated": "Invalid value of field {field}"
+        }
+    ]
+}
