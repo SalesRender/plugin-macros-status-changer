@@ -29,7 +29,7 @@ class OrdersHandler implements BatchHandlerInterface
     {
         $token = GraphqlInputToken::getInstance();
         $this->client = new ApiClient(
-            "{$token->getBackendUri()}companies/{$token->getPluginReference()->getCompanyId()}/CRM",
+            $token->getBackendUri() . 'companies/stark-industries/CRM',
             (string)$token->getOutputToken()
         );
 
@@ -45,7 +45,6 @@ class OrdersHandler implements BatchHandlerInterface
                 ],
             ]
         ];
-
         $ordersIterator = new OrdersFetcherIterator(
             $orderFields,
             $batch->getApiClient(),
@@ -53,10 +52,6 @@ class OrdersHandler implements BatchHandlerInterface
         );
 
         $ordersCount = count($ordersIterator);
-
-        if (is_null($maximumOrdersCount)) {
-            $maximumOrdersCount = $_ENV['MAX_ORDERS_COUNT_DEFAULT'];
-        }
 
         if ($ordersCount > $maximumOrdersCount) {
             $process->terminate(new Error(
@@ -87,6 +82,12 @@ QUERY;
         foreach ($ordersIterator as $id => $order) {
             try {
                 $errors = [];
+                $order = new Dot($order);
+
+                if ($order->get('status.id') == $targetStatus) throw new Exception(Translator::get(
+                    'process_errors',
+                    'ORDER_ALREADY_IN_STATUS_ERROR'
+                ));
 
                 $variables = [
                     'input' => [
@@ -111,7 +112,8 @@ QUERY;
                 $process->addError(new Error(
                     Translator::get(
                         'process_errors',
-                        'PROCESS_UNKNOWN_ERROR'
+                        'PROCESS_UNKNOWN_ERROR {errorMessage}',
+                        ['errorMessage' => $exception->getMessage()]
                     ),
                     $id
                 ));
