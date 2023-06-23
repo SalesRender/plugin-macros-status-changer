@@ -15,7 +15,7 @@ class Statuses
     {
         $token = GraphqlInputToken::getInstance();
         $this->client = new ApiClient(
-            $token->getBackendUri() . 'companies/stark-industries/CRM',
+            "{$token->getBackendUri()}companies/{$token->getPluginReference()->getCompanyId()}/CRM",
             (string)$token->getOutputToken()
         );
     }

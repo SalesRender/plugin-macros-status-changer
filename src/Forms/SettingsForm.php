@@ -40,7 +40,7 @@ class SettingsForm extends Form
                             ),
                             Translator::get(
                                 'settings',
-                                'MAX_ORDERS_COUNT_FIELD_DESCRIPTION'
+                                'MAX_ORDERS_COUNT_DEFAULT_FIELD_DESCRIPTION'
                             ),
                             function ($value, FieldDefinition $definition) {
                                 $errors = [];
@@ -53,7 +53,7 @@ class SettingsForm extends Form
                                 }
                                 return $errors;
                             },
-                            100
+                            $_ENV['MAX_ORDERS_COUNT_DEFAULT']
                         )
                     ]
                 )

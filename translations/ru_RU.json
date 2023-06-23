@@ -1,5 +1,5 @@
 {
-    "info" : [
+    "info": [
         {
             "source": "PLUGIN_NAME",
             "translated": "Массовое перемещение"
@@ -19,8 +19,8 @@
             "translated": "Заказ уже находится в выбранном статусе"
         },
         {
-            "source": "PROCESS_UNKNOWN_ERROR {errorMessage}",
-            "translated": "Во время обработки возникла неизвестная ошибка: {errorMessage}"
+            "source": "PROCESS_UNKNOWN_ERROR",
+            "translated": "Во время обработки возникла неизвестная ошибка"
         }
     ],
     "batch_settings": [
