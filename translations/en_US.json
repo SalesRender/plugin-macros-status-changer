@@ -1,5 +1,5 @@
 {
-    "info" : [
+    "info": [
         {
             "source": "PLUGIN_NAME",
             "translated": "Batch move"
@@ -19,8 +19,8 @@
             "translated": "Order already in selected status"
         },
         {
-            "source": "PROCESS_UNKNOWN_ERROR {errorMessage}",
-            "translated": "An error occurred while processing: {errorMessage}"
+            "source": "PROCESS_UNKNOWN_ERROR",
+            "translated": "An unknown error occurred while processing"
         }
     ],
     "batch_settings": [

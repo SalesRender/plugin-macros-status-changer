@@ -1,0 +1,9 @@
+/vendor/
+.idea/
+composer.lock
+.env
+database.db
+/example.zip
+/composer.phar
+/example1.zip
+/src.zip
