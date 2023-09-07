@@ -59,4 +59,3 @@ BatchContainer::config(
     },
     new OrdersHandler()
 );
-

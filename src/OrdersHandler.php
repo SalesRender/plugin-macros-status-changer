@@ -19,6 +19,7 @@ use Leadvertex\Plugin\Components\Batch\Process\Process;
 use Leadvertex\Plugin\Components\Settings\Settings;
 use Leadvertex\Plugin\Components\Translations\Translator;
 use Leadvertex\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
+use Leadvertex\Plugin\Instance\Excel\Models\StatusChangeTransactionOrder;
 
 class OrdersHandler implements BatchHandlerInterface
 {
@@ -72,7 +73,97 @@ class OrdersHandler implements BatchHandlerInterface
 
         $process->initialize($ordersCount);
 
-        $query = <<<QUERY
+
+        foreach ($ordersIterator as $orderId => $orderData) {
+            $orderData = new Dot($orderData);
+            $transactionOrder = new StatusChangeTransactionOrder($orderId, $process->getId(), $orderData->get('status.id'));
+            $transactionOrder->save();
+        }
+
+        $orderQuery = <<<QUERY
+query (\$filter: OrderSearchFilter) {
+  ordersFetcher(filters: \$filter) {
+    orders {
+      id
+      status {
+        id
+      }
+    }
+  }
+}
+QUERY;
+
+        while (($transactionOrder = StatusChangeTransactionOrder::findSingleByProcessId($process->getId())) !== null) {
+            /** @var StatusChangeTransactionOrder $transactionOrder */
+            $orderId = $transactionOrder->getId();
+            $statusId = $transactionOrder->getStatusId();
+            $variables = [
+                'filter' => [
+                    'include' => [
+                        'ids' => [$orderId]
+                    ]
+                ]
+            ];
+
+            $response = $this->client->query($orderQuery, ($variables));
+
+            if ($response->hasErrors()) {
+                $errors = [];
+                foreach ($response->getErrors() as $error) {
+                    $errors[] = $error['message'];
+                }
+                $process->addError(new Error(
+                    implode('; ', $errors),
+                    $orderId
+                ));
+                $transactionOrder->delete();
+                $process->save();
+                continue;
+            }
+
+            $responseOrders = (new Dot($response->getData()))->get('ordersFetcher.orders');
+            try {
+                foreach ($responseOrders as $responseOrder) {
+                    $responseOrder = new Dot($responseOrder);
+                    if ($responseOrder->get('status.id', -1) != $statusId) {
+                        $transactionOrder->delete();
+                        $process->skip();
+                        $process->save();
+                        throw new Exception('Order already changed status');
+                    }
+                }
+            } catch (Exception $exception) {
+                continue;
+            }
+
+            try {
+                $this->applyOrderTransaction($transactionOrder, $targetStatus);
+                $process->handle();
+            } catch (Exception $exception) {
+                $process->addError(new Error(
+                    Translator::get(
+                        'process_errors',
+                        'PROCESS_UNKNOWN_ERROR'
+                    ),
+                    $orderId
+                ));
+            } finally {
+                $transactionOrder->delete();
+                $process->save();
+            }
+        }
+
+        if ($process->getHandledCount() < $ordersCount) {
+            $process->addError(new Error("Было пропущено " . ($ordersCount - $process->getHandledCount()) . " заказов", null));
+        }
+
+        $process->finish(true);
+        $process->save();
+    }
+
+    private function applyOrderTransaction(StatusChangeTransactionOrder $transactionOrder, int $targetStatus)
+    {
+        $statusChangeMutation = <<<QUERY
 mutation updateOrder(\$input: UpdateOrderInput!) {
   orderMutation {
     updateOrder(input: \$input) {
@@ -84,42 +175,23 @@ mutation updateOrder(\$input: UpdateOrderInput!) {
 }
 QUERY;
 
-        foreach ($ordersIterator as $id => $order) {
-            try {
-                $errors = [];
+        $errors = [];
 
-                $variables = [
-                    'input' => [
-                        'id' => $id,
-                        'statusId' => $targetStatus
-                    ]
-                ];
+        $variables = [
+            'input' => [
+                'id' => $transactionOrder->getId(),
+                'statusId' => $targetStatus
+            ]
+        ];
 
-                $response = $this->client->query($query, ($variables));
+        $response = $this->client->query($statusChangeMutation, ($variables));
 
-                if ($response->hasErrors()) {
-                    foreach ($response->getErrors() as $error) {
-                        $errors[] = $error['message'];
-                    }
-
-                    throw new Exception(implode("; ", $errors));
-                }
-
-                $process->handle();
-
-            } catch (Exception $exception) {
-                $process->addError(new Error(
-                    Translator::get(
-                        'process_errors',
-                        'PROCESS_UNKNOWN_ERROR'
-                    ),
-                    $id
-                ));
+        if ($response->hasErrors()) {
+            foreach ($response->getErrors() as $error) {
+                $errors[] = $error['message'];
             }
-            $process->save();
-        }
 
-        $process->finish(true);
-        $process->save();
+            throw new Exception(implode("; ", $errors));
+        }
     }
 }
