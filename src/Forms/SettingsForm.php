@@ -5,14 +5,14 @@
  * @author Timur Kasumov aka XAKEPEHOK
  */
 
-namespace Leadvertex\Plugin\Instance\Excel\Forms;
+namespace SalesRender\Plugin\Instance\Excel\Forms;
 
 
-use Leadvertex\Plugin\Components\Form\FieldDefinitions\FieldDefinition;
-use Leadvertex\Plugin\Components\Form\FieldDefinitions\IntegerDefinition;
-use Leadvertex\Plugin\Components\Form\FieldGroup;
-use Leadvertex\Plugin\Components\Form\Form;
-use Leadvertex\Plugin\Components\Translations\Translator;
+use SalesRender\Plugin\Components\Form\FieldDefinitions\FieldDefinition;
+use SalesRender\Plugin\Components\Form\FieldDefinitions\IntegerDefinition;
+use SalesRender\Plugin\Components\Form\FieldGroup;
+use SalesRender\Plugin\Components\Form\Form;
+use SalesRender\Plugin\Components\Translations\Translator;
 
 class SettingsForm extends Form
 {

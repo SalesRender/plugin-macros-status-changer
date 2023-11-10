@@ -1,11 +1,11 @@
 <?php
 
 
-namespace Leadvertex\Plugin\Instance\Excel\Components;
+namespace SalesRender\Plugin\Instance\Excel\Components;
 
 
-use Leadvertex\Plugin\Components\Access\Token\GraphqlInputToken;
-use Leadvertex\Plugin\Components\ApiClient\ApiClient;
+use SalesRender\Plugin\Components\Access\Token\GraphqlInputToken;
+use SalesRender\Plugin\Components\ApiClient\ApiClient;
 
 class Statuses
 {
