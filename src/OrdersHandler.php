@@ -93,65 +93,73 @@ query (\$filter: OrderSearchFilter) {
 }
 QUERY;
 
-        while (($transactionOrder = StatusChangeTransactionOrder::findSingleByProcessId($process->getId())) !== null) {
-            /** @var StatusChangeTransactionOrder $transactionOrder */
-            $orderId = $transactionOrder->getId();
-            $statusId = $transactionOrder->getStatusId();
-            $variables = [
-                'filter' => [
-                    'include' => [
-                        'ids' => [$orderId]
+        try {
+            while (($transactionOrder = StatusChangeTransactionOrder::findSingleByProcessId($process->getId())) !== null) {
+                /** @var StatusChangeTransactionOrder $transactionOrder */
+                $orderId = $transactionOrder->getId();
+                $statusId = $transactionOrder->getStatusId();
+                $variables = [
+                    'filter' => [
+                        'include' => [
+                            'ids' => [$orderId]
+                        ]
                     ]
-                ]
-            ];
+                ];
 
-            $response = $this->client->query($orderQuery, ($variables));
+                $response = $this->client->query($orderQuery, ($variables));
 
-            if ($response->hasErrors()) {
-                $errors = [];
-                foreach ($response->getErrors() as $error) {
-                    $errors[] = $error['message'];
-                }
-                $process->addError(new Error(
-                    implode('; ', $errors),
-                    $orderId
-                ));
-                $transactionOrder->delete();
-                $process->save();
-                continue;
-            }
-
-            $responseOrders = (new Dot($response->getData()))->get('ordersFetcher.orders');
-            try {
-                foreach ($responseOrders as $responseOrder) {
-                    $responseOrder = new Dot($responseOrder);
-                    if ($responseOrder->get('status.id', -1) != $statusId) {
-                        $transactionOrder->delete();
-                        $process->skip();
-                        $process->save();
-                        throw new Exception('Order already changed status');
+                if ($response->hasErrors()) {
+                    $errors = [];
+                    foreach ($response->getErrors() as $error) {
+                        $errors[] = $error['message'];
                     }
+                    $process->addError(new Error(
+                        implode('; ', $errors),
+                        $orderId
+                    ));
+                    $transactionOrder->delete();
+                    $process->save();
+                    continue;
                 }
-            } catch (Exception $exception) {
-                continue;
-            }
 
-            try {
-                $this->applyOrderTransaction($transactionOrder, $targetStatus);
-                $process->handle();
-            } catch (Exception $exception) {
-                $process->addError(new Error(
-                    Translator::get(
-                        'process_errors',
-                        'PROCESS_UNKNOWN_ERROR'
-                    ),
-                    $orderId
-                ));
-            } finally {
-                $transactionOrder->delete();
-                $process->save();
+                $responseOrders = (new Dot($response->getData()))->get('ordersFetcher.orders');
+                try {
+                    foreach ($responseOrders as $responseOrder) {
+                        $responseOrder = new Dot($responseOrder);
+                        if ($responseOrder->get('status.id', -1) != $statusId) {
+                            $transactionOrder->delete();
+                            $process->skip();
+                            $process->save();
+                            throw new Exception('Order already changed status');
+                        }
+                    }
+                } catch (Exception $exception) {
+                    continue;
+                }
+
+                try {
+                    $this->applyOrderTransaction($transactionOrder, $targetStatus);
+                    $process->handle();
+                } catch (Exception $exception) {
+                    $process->addError(new Error(
+                        Translator::get(
+                            'process_errors',
+                            'PROCESS_UNKNOWN_ERROR'
+                        ),
+                        $orderId
+                    ));
+                } finally {
+                    $transactionOrder->delete();
+                    $process->save();
+                }
+            }
+        } catch (Exception $exception) {
+            $models = StatusChangeTransactionOrder::findAllByProcessId($process->getId());
+            foreach ($models as $model) {
+                $model->delete();
             }
         }
+
 
         if ($process->getHandledCount() < $ordersCount) {
             $process->addError(new Error("Было пропущено " . ($ordersCount - $process->getHandledCount()) . " заказов", null));

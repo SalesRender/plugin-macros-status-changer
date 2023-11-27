@@ -1,9 +1,10 @@
 <?php
 
-namespace SalesRender\Plugin\Instance\Excel\Models;
+namespace Leadvertex\Plugin\Instance\Excel\Models;
 
-use SalesRender\Plugin\Components\Db\Model;
-use SalesRender\Plugin\Components\Db\PluginModelInterface;
+use Leadvertex\Plugin\Components\Db\Exceptions\DatabaseException;
+use Leadvertex\Plugin\Components\Db\Model;
+use Leadvertex\Plugin\Components\Db\PluginModelInterface;
 
 class StatusChangeTransactionOrder extends Model implements PluginModelInterface
 {
@@ -61,6 +62,25 @@ class StatusChangeTransactionOrder extends Model implements PluginModelInterface
             return null;
         }
         return $model;
+    }
+
+    /**
+     * @param string $id
+     * @return array<StatusChangeTransactionOrder>|null
+     * @throws DatabaseException
+     * @throws \ReflectionException
+     */
+    public static function findAllByProcessId(string $id): ?array
+    {
+        $models = static::findByCondition([
+            'processId' => $id,
+        ]);
+
+        if (empty($models)) {
+            return null;
+        }
+
+        return $models;
     }
 
     /**
