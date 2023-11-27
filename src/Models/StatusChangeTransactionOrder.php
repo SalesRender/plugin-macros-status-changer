@@ -1,10 +1,10 @@
 <?php
 
-namespace Leadvertex\Plugin\Instance\Excel\Models;
+namespace SalesRender\Plugin\Instance\Excel\Models;
 
-use Leadvertex\Plugin\Components\Db\Exceptions\DatabaseException;
-use Leadvertex\Plugin\Components\Db\Model;
-use Leadvertex\Plugin\Components\Db\PluginModelInterface;
+use SalesRender\Plugin\Components\Db\Exceptions\DatabaseException;
+use SalesRender\Plugin\Components\Db\Model;
+use SalesRender\Plugin\Components\Db\PluginModelInterface;
 
 class StatusChangeTransactionOrder extends Model implements PluginModelInterface
 {
