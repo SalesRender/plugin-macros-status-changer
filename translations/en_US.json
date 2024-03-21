@@ -6,7 +6,7 @@
         },
         {
             "source": "PLUGIN_DESCRIPTION",
-            "translated": "Allows you to bulk move orders inside LeadVertex"
+            "translated": "Allows you to bulk move orders inside SalesRender"
         }
     ],
     "process_errors": [
