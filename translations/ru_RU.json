@@ -6,7 +6,7 @@
         },
         {
             "source": "PLUGIN_DESCRIPTION",
-            "translated": "Позволяет массово перемещать заказы внутри LeadVertex"
+            "translated": "Позволяет массово перемещать заказы внутри SalesRender"
         }
     ],
     "process_errors": [
