@@ -19,7 +19,7 @@ use SalesRender\Plugin\Components\Batch\Process\Process;
 use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
-use SalesRender\Plugin\Instance\Excel\Models\StatusChangeTransactionOrder;
+use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
 {
@@ -72,12 +72,11 @@ class OrdersHandler implements BatchHandlerInterface
         }
 
         $process->initialize($ordersCount);
+        $process->save();
 
-
+        $orderIds = [];
         foreach ($ordersIterator as $orderId => $orderData) {
-            $orderData = new Dot($orderData);
-            $transactionOrder = new StatusChangeTransactionOrder($orderId, $process->getId(), $orderData->get('status.id'));
-            $transactionOrder->save();
+            $orderIds[$orderId] = $orderData['status']['id'];
         }
 
         $orderQuery = <<<QUERY
@@ -94,16 +93,13 @@ query (\$filter: OrderSearchFilter) {
 QUERY;
 
         try {
-            while (($transactionOrder = StatusChangeTransactionOrder::findSingleByProcessId($process->getId())) !== null) {
-                /** @var StatusChangeTransactionOrder $transactionOrder */
-                $orderId = $transactionOrder->getId();
-                $statusId = $transactionOrder->getStatusId();
+            foreach ($orderIds as $orderId => $statusId) {
                 $variables = [
                     'filter' => [
                         'include' => [
                             'ids' => [$orderId]
                         ]
-                    ]
+                    ],
                 ];
 
                 $response = $this->client->query($orderQuery, ($variables));
@@ -117,7 +113,6 @@ QUERY;
                         implode('; ', $errors),
                         $orderId
                     ));
-                    $transactionOrder->delete();
                     $process->save();
                     continue;
                 }
@@ -127,7 +122,6 @@ QUERY;
                     foreach ($responseOrders as $responseOrder) {
                         $responseOrder = new Dot($responseOrder);
                         if ($responseOrder->get('status.id', -1) != $statusId) {
-                            $transactionOrder->delete();
                             $process->skip();
                             $process->save();
                             throw new Exception('Order already changed status');
@@ -138,7 +132,7 @@ QUERY;
                 }
 
                 try {
-                    $this->applyOrderTransaction($transactionOrder, $targetStatus);
+                    $this->applyOrderTransaction($orderId, $targetStatus);
                     $process->handle();
                 } catch (Exception $exception) {
                     $process->addError(new Error(
@@ -149,15 +143,11 @@ QUERY;
                         $orderId
                     ));
                 } finally {
-                    $transactionOrder->delete();
                     $process->save();
                 }
             }
         } catch (Exception $exception) {
-            $models = StatusChangeTransactionOrder::findAllByProcessId($process->getId());
-            foreach ($models as $model) {
-                $model->delete();
-            }
+            captureException($exception);
         }
 
 
@@ -169,7 +159,7 @@ QUERY;
         $process->save();
     }
 
-    private function applyOrderTransaction(StatusChangeTransactionOrder $transactionOrder, int $targetStatus)
+    private function applyOrderTransaction(string $orderId, int $targetStatus)
     {
         $statusChangeMutation = <<<QUERY
 mutation updateOrder(\$input: UpdateOrderInput!) {
@@ -187,7 +177,7 @@ QUERY;
 
         $variables = [
             'input' => [
-                'id' => $transactionOrder->getId(),
+                'id' => $orderId,
                 'statusId' => $targetStatus
             ]
         ];
