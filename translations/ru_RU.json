@@ -21,6 +21,26 @@
         {
             "source": "PROCESS_UNKNOWN_ERROR",
             "translated": "Во время обработки возникла неизвестная ошибка"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_NOT_FOUND",
+            "translated": "Выбранный статус для перемещения не найден"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_ARCHIVED",
+            "translated": "Выбранный статус для перемещения заархивирован"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_MOVE_RESTRICTION",
+            "translated": "Заказ нельзя переместить в выбранный статус из-за ограничений в правилах перемещения"
+        },
+        {
+            "source": "ERR_ORDER_VALIDATION_FAILED",
+            "translated": "Заказ нельзя переместить в выбранный статус из-за настроенного валидатора"
+        },
+        {
+            "source": "ERR_ORDER_LOCKED",
+            "translated": "Заказ нельзя переместить в выбранный статус, так как он уже заблокирован кем-то другим"
         }
     ],
     "batch_settings": [

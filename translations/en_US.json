@@ -21,6 +21,26 @@
         {
             "source": "PROCESS_UNKNOWN_ERROR",
             "translated": "An unknown error occurred while processing"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_NOT_FOUND",
+            "translated": "The selected status for the move was not found"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_ARCHIVED",
+            "translated": "The selected status for the move is archived"
+        },
+        {
+            "source": "ERR_ORDER_STATUS_MOVE_RESTRICTION",
+            "translated": "The order cannot be moved to the selected status due to restrictions in the transfer rules"
+        },
+        {
+            "source": "ERR_ORDER_VALIDATION_FAILED",
+            "translated": "The order cannot be moved to the selected status due to the configured validator"
+        },
+        {
+            "source": "ERR_ORDER_LOCKED",
+            "translated": "The order cannot be moved to the selected status, as it has already been blocked by someone else"
         }
     ],
     "batch_settings": [
