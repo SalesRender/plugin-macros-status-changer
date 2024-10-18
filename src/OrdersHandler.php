@@ -135,13 +135,27 @@ QUERY;
                     $this->applyOrderTransaction($orderId, $targetStatus);
                     $process->handle();
                 } catch (Exception $exception) {
-                    $process->addError(new Error(
-                        Translator::get(
-                            'process_errors',
-                            'PROCESS_UNKNOWN_ERROR'
-                        ),
-                        $orderId
-                    ));
+                    $errorMessages = $exception->getMessage();
+                    $errors = explode(";", $errorMessages);
+                    foreach ($errors as $error) {
+                        $errorParts = explode("|", $error);
+                        [$errorCode, $errorMessage] = $errorParts;
+
+                        $errorText = 'PROCESS_UNKNOWN_ERROR';
+
+                        if (!empty($errorCode)) {
+                            $errorText = $errorCode;
+                        } elseif (!empty($errorMessage)) {
+                            $errorText = $errorMessage;
+                        }
+                        $process->addError(new Error(
+                            Translator::get(
+                                'process_errors',
+                                $errorText
+                            ),
+                            $orderId
+                        ));
+                    }
                 } finally {
                     $process->save();
                 }
@@ -186,7 +200,9 @@ QUERY;
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {
-                $errors[] = $error['message'];
+                $textCodeError = $error['extensions']['code'];
+                $messageError = $error['message'];
+                $errors[] = "{$textCodeError}|{$messageError}";
             }
 
             throw new Exception(implode("; ", $errors));
