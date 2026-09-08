@@ -6,7 +6,7 @@
         },
         {
             "source": "PLUGIN_DESCRIPTION",
-            "translated": "Allows you to bulk move orders inside SalesRender"
+            "translated": "This plugin enables bulk status changes for orders inside SalesRender."
         }
     ],
     "process_errors": [
@@ -82,11 +82,11 @@
     "settings": [
         {
             "source": "SETTINGS_TITLE",
-            "translated": "Order movement settings"
+            "translated": "Settings"
         },
         {
             "source": "SETTINGS_DESCRIPTION",
-            "translated": "Here you can specify the settings for orders moving"
+            "translated": "**This plugin is designed for bulk moving orders between CRM statuses.**\n\nYou can change the plugin name by clicking on it on the page with all macros plugins.\n\nBefore you start working with the macro, there is only one setting you need to configure — **enter a value in the Maximum orders count per operation field.** The default is set to 100. If this is sufficient for your needs, don't change the settings. Note: if you try to move more orders at once than the specified limit, the macros will not run.\n\nYou can run the macro in the **Working mode → Orders.** Below the orders, you will see the **Handle** button.\n\n**To move all orders** from the page by filters or status — click Handle → Bulk order status move.\n**To move specific orders** — check the boxes and move only the selected ones."
         },
         {
             "source": "SETTINGS_MAIN_FIELDS_TITLE",
@@ -97,8 +97,8 @@
             "translated": "Maximum orders count per operation"
         },
         {
-            "source": "MAX_ORDERS_COUNT_FIELD_DESCRIPTION",
-            "translated": "Select the maximum number of orders that can be moved in one operation"
+            "source": "MAX_ORDERS_COUNT_DEFAULT_FIELD_DESCRIPTION",
+            "translated": "Enter the maximum number of orders the macros will be able to handle in one run."
         },
         {
             "source": "SETTINGS_SAVE_BUTTON",
