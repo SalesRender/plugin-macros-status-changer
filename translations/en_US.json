@@ -6,7 +6,7 @@
         },
         {
             "source": "PLUGIN_DESCRIPTION",
-            "translated": "Allows you to bulk move orders inside SalesRender"
+            "translated": "This plugin enables bulk status changes for orders inside SalesRender."
         }
     ],
     "process_errors": [
@@ -82,7 +82,7 @@
     "settings": [
         {
             "source": "SETTINGS_TITLE",
-            "translated": "Order movement settings"
+            "translated": "Settings"
         },
         {
             "source": "SETTINGS_DESCRIPTION",
