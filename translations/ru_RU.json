@@ -11,6 +11,14 @@
     ],
     "process_errors": [
         {
+            "source": "ORDER_CONCURRENT_UPDATE_ERROR",
+            "translated": "Заказ уже изменяется или был недавно изменён. Повторите попытку позже."
+        },
+        {
+            "source": "PROCESS_TOO_MANY_REQUESTS_ERROR",
+            "translated": "Слишком много запросов. Повторите попытку позже."
+        },
+        {
             "source": "MAXIMUM_ORDERS_COUNT_EXCEEDED_ERROR {maximumOrdersCount}",
             "translated": "Количество выбранных заказов превышает максимальное ({maximumOrdersCount})"
         },
