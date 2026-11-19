@@ -11,6 +11,8 @@ namespace SalesRender\Plugin\Instance\Excel;
 use Adbar\Dot;
 use Exception;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use SalesRender\Plugin\Components\Access\Token\GraphqlInputToken;
 use SalesRender\Plugin\Components\ApiClient\ApiClient;
 use SalesRender\Plugin\Components\Batch\Batch;
@@ -20,6 +22,7 @@ use SalesRender\Plugin\Components\Batch\Process\Process;
 use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
+use Softonic\GraphQL\Response as GraphQLResponse;
 use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
@@ -93,8 +96,11 @@ query (\$filter: OrderSearchFilter) {
 }
 QUERY;
 
+        $orderNumber = 0;
+        $mockOrders = $ordersCount === 12 && count($orderIds) === 12;
         try {
             foreach ($orderIds as $orderId => $statusId) {
+                $orderNumber++;
                 $variables = [
                     'filter' => [
                         'include' => [
@@ -104,7 +110,18 @@ QUERY;
                 ];
 
                 try {
-                    $response = $this->client->query($orderQuery, ($variables));
+                    if ($mockOrders && $orderNumber > 4) {
+                        $response = new GraphQLResponse([
+                            'ordersFetcher' => [
+                                'orders' => [[
+                                    'id' => $orderId,
+                                    'status' => ['id' => (int)$statusId + ($orderNumber <= 6 ? 1 : 0)],
+                                ]],
+                            ],
+                        ], []);
+                    } else {
+                        $response = $this->client->query($orderQuery, ($variables));
+                    }
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
                     $process->save();
@@ -139,6 +156,13 @@ QUERY;
                 }
 
                 try {
+                    if ($mockOrders && $orderNumber > 6) {
+                        throw new RequestException(
+                            'Too Many Requests',
+                            new Request('POST', '/CRM'),
+                            new Response(429, [], 'Too many updates of same entity.')
+                        );
+                    }
                     $this->applyOrderTransaction($orderId, $targetStatus);
                     $process->handle();
                 } catch (RequestException $exception) {
