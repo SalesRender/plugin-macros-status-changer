@@ -8,3 +8,4 @@ database.db
 /example1.zip
 /src.zip
 /db/order-errors.log
+/db/order-process.log

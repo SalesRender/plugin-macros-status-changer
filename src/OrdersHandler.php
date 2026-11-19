@@ -23,7 +23,6 @@ use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
 use Softonic\GraphQL\Response as GraphQLResponse;
-use Throwable;
 use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
@@ -83,6 +82,7 @@ class OrdersHandler implements BatchHandlerInterface
         foreach ($ordersIterator as $orderId => $orderData) {
             $orderIds[$orderId] = $orderData['status']['id'];
         }
+        $this->logOrderProcess($process, 'spisok', count($orderIds), 0);
 
         $orderQuery = <<<QUERY
 query (\$filter: OrderSearchFilter) {
@@ -121,7 +121,7 @@ QUERY;
                             ],
                         ], []);
                     } else {
-                        $response = $this->queryOrder('ordersFetcher', $orderId, $orderQuery, $variables);
+                        $response = $this->client->query($orderQuery, $variables);
                     }
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
@@ -195,48 +195,25 @@ QUERY;
         }
 
 
-        if ($process->getHandledCount() < $ordersCount) {
-            $process->addError(new Error("Было пропущено " . ($ordersCount - $process->getHandledCount()) . " заказов", null));
-        }
-
+        $this->logOrderProcess($process, 'do_zaversheniya', count($orderIds), $orderNumber);
         $process->finish(true);
         $process->save();
+        $this->logOrderProcess($process, 'posle_zaversheniya', count($orderIds), $orderNumber);
     }
 
-    private function queryOrder(string $method, string $orderId, string $query, array $variables): GraphQLResponse
+    private function logOrderProcess(Process $process, string $stage, int $ordersCount, int $orderNumber): void
     {
-        try {
-            $response = $this->client->query($query, $variables);
-        } catch (Throwable $exception) {
-            $httpResponse = $exception instanceof RequestException ? $exception->getResponse() : null;
-            $details = 'isklyuchenie=' . get_class($exception)
-                . ' istochnik=' . basename($exception->getFile()) . ':' . $exception->getLine();
-            if ($httpResponse !== null) {
-                $details .= ' http=' . $httpResponse->getStatusCode();
-            }
-            $this->logOrderError($method, $orderId, $details, $exception->getMessage());
-            throw $exception;
-        }
+        $data = $process->jsonSerialize();
+        $initialized = $data['initialized']['value'];
+        $handled = $data['handled'];
+        $skipped = $data['skipped'];
+        $failed = $data['failed']['count'];
+        $total = $handled + $skipped + $failed;
 
-        foreach ($response->getErrors() as $error) {
-            $this->logOrderError($method, $orderId, 'oshibka=GraphQL', $error['message'] ?? '');
-        }
-
-        return $response;
-    }
-
-    private function logOrderError(string $method, string $orderId, string $details, string $message): void
-    {
-        if (strpos($message, 'array_map()') !== false) {
-            $details .= ' funktsiya=array_map';
-            if (strpos($message, 'bool given') !== false && strpos($message, 'must be of type array') !== false) {
-                $details .= ' prichina=ozhidalsya_massiv_polucheno_logicheskoe_znachenie';
-            }
-        }
-
-        $entry = gmdate('c') . " zakaz=$orderId metod=$method $details" . PHP_EOL;
-        $path = dirname(__DIR__) . '/db/order-errors.log';
-        @error_log($entry, 3, $path);
+        $entry = gmdate('c') . ' zapusk=' . $process->getId()
+            . " etap=$stage zayavleno=$initialized v_spiske=$ordersCount proshli_tsikl=$orderNumber"
+            . " uspeshno=$handled propushcheno=$skipped oshibok=$failed summa=$total" . PHP_EOL;
+        @error_log($entry, 3, dirname(__DIR__) . '/db/order-process.log');
     }
 
     private function getRequestErrorText(RequestException $exception): string
@@ -279,7 +256,7 @@ QUERY;
             ]
         ];
 
-        $response = $this->queryOrder('updateOrder', $orderId, $statusChangeMutation, $variables);
+        $response = $this->client->query($statusChangeMutation, $variables);
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {
