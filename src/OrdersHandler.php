@@ -23,6 +23,7 @@ use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
 use Softonic\GraphQL\Response as GraphQLResponse;
+use Throwable;
 use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
@@ -121,7 +122,7 @@ QUERY;
                             ],
                         ], []);
                     } else {
-                        $response = $this->client->query($orderQuery, $variables);
+                        $response = $this->queryOrder($process, $orderId, 'ordersFetcher', $orderQuery, $variables);
                     }
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
@@ -164,7 +165,7 @@ QUERY;
                             new Response(429, [], 'Too many updates of same entity.')
                         );
                     }
-                    $this->applyOrderTransaction($orderId, $targetStatus);
+                    $this->applyOrderTransaction($process, $orderId, $targetStatus);
                     $process->handle();
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
@@ -233,7 +234,36 @@ QUERY;
         return Translator::get('process_errors', $errorText);
     }
 
-    private function applyOrderTransaction(string $orderId, int $targetStatus)
+    private function queryOrder(Process $process, string $orderId, string $method, string $query, array $variables): GraphQLResponse
+    {
+        try {
+            $response = $this->client->query($query, $variables);
+        } catch (Throwable $exception) {
+            if (!$exception instanceof RequestException || strpos($exception->getMessage(), 'array_map()') !== false) {
+                $this->logOrderErrorType($process, $orderId, $method, 'lokalnoe_isklyuchenie=' . get_class($exception));
+            }
+            throw $exception;
+        }
+
+        foreach ($response->getErrors() as $error) {
+            if (strpos($error['message'] ?? '', 'array_map()') !== false) {
+                $code = (string) ($error['extensions']['code'] ?? '');
+                $code = preg_match('/\A[a-zA-Z0-9_.-]{1,64}\z/', $code) ? $code : 'net';
+                $this->logOrderErrorType($process, $orderId, $method, "tip=GraphQL kod=$code funktsiya=array_map");
+            }
+        }
+
+        return $response;
+    }
+
+    private function logOrderErrorType(Process $process, string $orderId, string $method, string $details): void
+    {
+        $entry = gmdate('c') . ' zapusk=' . $process->getId()
+            . " zakaz=$orderId metod=$method $details" . PHP_EOL;
+        @error_log($entry, 3, dirname(__DIR__) . '/db/order-process.log');
+    }
+
+    private function applyOrderTransaction(Process $process, string $orderId, int $targetStatus)
     {
         $statusChangeMutation = <<<QUERY
 mutation updateOrder(\$input: UpdateOrderInput!) {
@@ -256,7 +286,7 @@ QUERY;
             ]
         ];
 
-        $response = $this->client->query($statusChangeMutation, $variables);
+        $response = $this->queryOrder($process, $orderId, 'updateOrder', $statusChangeMutation, $variables);
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {
