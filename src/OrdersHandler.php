@@ -11,8 +11,6 @@ namespace SalesRender\Plugin\Instance\Excel;
 use Adbar\Dot;
 use Exception;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
 use SalesRender\Plugin\Components\Access\Token\GraphqlInputToken;
 use SalesRender\Plugin\Components\ApiClient\ApiClient;
 use SalesRender\Plugin\Components\Batch\Batch;
@@ -22,8 +20,6 @@ use SalesRender\Plugin\Components\Batch\Process\Process;
 use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
-use Softonic\GraphQL\Response as GraphQLResponse;
-use Throwable;
 use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
@@ -83,7 +79,6 @@ class OrdersHandler implements BatchHandlerInterface
         foreach ($ordersIterator as $orderId => $orderData) {
             $orderIds[$orderId] = $orderData['status']['id'];
         }
-        $this->logOrderProcess($process, 'spisok', count($orderIds), 0);
 
         $orderQuery = <<<QUERY
 query (\$filter: OrderSearchFilter) {
@@ -98,11 +93,8 @@ query (\$filter: OrderSearchFilter) {
 }
 QUERY;
 
-        $orderNumber = 0;
-        $mockOrders = $ordersCount === 12 && count($orderIds) === 12;
         try {
             foreach ($orderIds as $orderId => $statusId) {
-                $orderNumber++;
                 $variables = [
                     'filter' => [
                         'include' => [
@@ -112,18 +104,7 @@ QUERY;
                 ];
 
                 try {
-                    if ($mockOrders && $orderNumber > 4) {
-                        $response = new GraphQLResponse([
-                            'ordersFetcher' => [
-                                'orders' => [[
-                                    'id' => $orderId,
-                                    'status' => ['id' => (int)$statusId + ($orderNumber <= 6 ? 1 : 0)],
-                                ]],
-                            ],
-                        ], []);
-                    } else {
-                        $response = $this->queryOrder($process, $orderId, 'ordersFetcher', $orderQuery, $variables);
-                    }
+                    $response = $this->client->query($orderQuery, $variables);
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
                     $process->save();
@@ -158,14 +139,7 @@ QUERY;
                 }
 
                 try {
-                    if ($mockOrders && $orderNumber > 6) {
-                        throw new RequestException(
-                            'Too Many Requests',
-                            new Request('POST', '/CRM'),
-                            new Response(429, [], 'Too many updates of same entity.')
-                        );
-                    }
-                    $this->applyOrderTransaction($process, $orderId, $targetStatus);
+                    $this->applyOrderTransaction($orderId, $targetStatus);
                     $process->handle();
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
@@ -196,25 +170,8 @@ QUERY;
         }
 
 
-        $this->logOrderProcess($process, 'do_zaversheniya', count($orderIds), $orderNumber);
         $process->finish(true);
         $process->save();
-        $this->logOrderProcess($process, 'posle_zaversheniya', count($orderIds), $orderNumber);
-    }
-
-    private function logOrderProcess(Process $process, string $stage, int $ordersCount, int $orderNumber): void
-    {
-        $data = $process->jsonSerialize();
-        $initialized = $data['initialized']['value'];
-        $handled = $data['handled'];
-        $skipped = $data['skipped'];
-        $failed = $data['failed']['count'];
-        $total = $handled + $skipped + $failed;
-
-        $entry = gmdate('c') . ' zapusk=' . $process->getId()
-            . " etap=$stage zayavleno=$initialized v_spiske=$ordersCount proshli_tsikl=$orderNumber"
-            . " uspeshno=$handled propushcheno=$skipped oshibok=$failed summa=$total" . PHP_EOL;
-        @error_log($entry, 3, dirname(__DIR__) . '/db/order-process.log');
     }
 
     private function getRequestErrorText(RequestException $exception): string
@@ -234,36 +191,7 @@ QUERY;
         return Translator::get('process_errors', $errorText);
     }
 
-    private function queryOrder(Process $process, string $orderId, string $method, string $query, array $variables): GraphQLResponse
-    {
-        try {
-            $response = $this->client->query($query, $variables);
-        } catch (Throwable $exception) {
-            if (!$exception instanceof RequestException || strpos($exception->getMessage(), 'array_map()') !== false) {
-                $this->logOrderErrorType($process, $orderId, $method, 'lokalnoe_isklyuchenie=' . get_class($exception));
-            }
-            throw $exception;
-        }
-
-        foreach ($response->getErrors() as $error) {
-            if (strpos($error['message'] ?? '', 'array_map()') !== false) {
-                $code = (string) ($error['extensions']['code'] ?? '');
-                $code = preg_match('/\A[a-zA-Z0-9_.-]{1,64}\z/', $code) ? $code : 'net';
-                $this->logOrderErrorType($process, $orderId, $method, "tip=GraphQL kod=$code funktsiya=array_map");
-            }
-        }
-
-        return $response;
-    }
-
-    private function logOrderErrorType(Process $process, string $orderId, string $method, string $details): void
-    {
-        $entry = gmdate('c') . ' zapusk=' . $process->getId()
-            . " zakaz=$orderId metod=$method $details" . PHP_EOL;
-        @error_log($entry, 3, dirname(__DIR__) . '/db/order-process.log');
-    }
-
-    private function applyOrderTransaction(Process $process, string $orderId, int $targetStatus)
+    private function applyOrderTransaction(string $orderId, int $targetStatus)
     {
         $statusChangeMutation = <<<QUERY
 mutation updateOrder(\$input: UpdateOrderInput!) {
@@ -286,7 +214,7 @@ QUERY;
             ]
         ];
 
-        $response = $this->queryOrder($process, $orderId, 'updateOrder', $statusChangeMutation, $variables);
+        $response = $this->client->query($statusChangeMutation, $variables);
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {
