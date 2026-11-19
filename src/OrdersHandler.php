@@ -23,6 +23,7 @@ use SalesRender\Plugin\Components\Settings\Settings;
 use SalesRender\Plugin\Components\Translations\Translator;
 use SalesRender\Plugin\Instance\Excel\Components\OrdersFetcherIterator;
 use Softonic\GraphQL\Response as GraphQLResponse;
+use Throwable;
 use function Sentry\captureException;
 
 class OrdersHandler implements BatchHandlerInterface
@@ -120,7 +121,7 @@ QUERY;
                             ],
                         ], []);
                     } else {
-                        $response = $this->client->query($orderQuery, ($variables));
+                        $response = $this->queryOrder('ordersFetcher', $orderId, $orderQuery, $variables);
                     }
                 } catch (RequestException $exception) {
                     $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
@@ -202,6 +203,42 @@ QUERY;
         $process->save();
     }
 
+    private function queryOrder(string $method, string $orderId, string $query, array $variables): GraphQLResponse
+    {
+        try {
+            $response = $this->client->query($query, $variables);
+        } catch (Throwable $exception) {
+            $httpResponse = $exception instanceof RequestException ? $exception->getResponse() : null;
+            $details = 'isklyuchenie=' . get_class($exception)
+                . ' istochnik=' . basename($exception->getFile()) . ':' . $exception->getLine();
+            if ($httpResponse !== null) {
+                $details .= ' http=' . $httpResponse->getStatusCode();
+            }
+            $this->logOrderError($method, $orderId, $details, $exception->getMessage());
+            throw $exception;
+        }
+
+        foreach ($response->getErrors() as $error) {
+            $this->logOrderError($method, $orderId, 'oshibka=GraphQL', $error['message'] ?? '');
+        }
+
+        return $response;
+    }
+
+    private function logOrderError(string $method, string $orderId, string $details, string $message): void
+    {
+        if (strpos($message, 'array_map()') !== false) {
+            $details .= ' funktsiya=array_map';
+            if (strpos($message, 'bool given') !== false && strpos($message, 'must be of type array') !== false) {
+                $details .= ' prichina=ozhidalsya_massiv_polucheno_logicheskoe_znachenie';
+            }
+        }
+
+        $entry = gmdate('c') . " zakaz=$orderId metod=$method $details" . PHP_EOL;
+        $path = dirname(__DIR__) . '/db/order-errors.log';
+        @error_log($entry, 3, $path);
+    }
+
     private function getRequestErrorText(RequestException $exception): string
     {
         $response = $exception->getResponse();
@@ -242,7 +279,7 @@ QUERY;
             ]
         ];
 
-        $response = $this->client->query($statusChangeMutation, ($variables));
+        $response = $this->queryOrder('updateOrder', $orderId, $statusChangeMutation, $variables);
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {

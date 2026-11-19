@@ -7,3 +7,4 @@ database.db
 /composer.phar
 /example1.zip
 /src.zip
+/db/order-errors.log
