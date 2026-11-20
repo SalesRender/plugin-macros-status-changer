@@ -10,6 +10,7 @@ namespace SalesRender\Plugin\Instance\Excel;
 
 use Adbar\Dot;
 use Exception;
+use GuzzleHttp\Exception\RequestException;
 use SalesRender\Plugin\Components\Access\Token\GraphqlInputToken;
 use SalesRender\Plugin\Components\ApiClient\ApiClient;
 use SalesRender\Plugin\Components\Batch\Batch;
@@ -102,7 +103,13 @@ QUERY;
                     ],
                 ];
 
-                $response = $this->client->query($orderQuery, ($variables));
+                try {
+                    $response = $this->client->query($orderQuery, $variables);
+                } catch (RequestException $exception) {
+                    $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
+                    $process->save();
+                    continue;
+                }
 
                 if ($response->hasErrors()) {
                     $errors = [];
@@ -134,11 +141,14 @@ QUERY;
                 try {
                     $this->applyOrderTransaction($orderId, $targetStatus);
                     $process->handle();
+                } catch (RequestException $exception) {
+                    $process->addError(new Error($this->getRequestErrorText($exception), $orderId));
                 } catch (Exception $exception) {
                     $errorMessages = $exception->getMessage();
                     $errors = explode(";", $errorMessages);
+                    $errorTexts = [];
                     foreach ($errors as $error) {
-                        $errorParts = explode("|", $error);
+                        $errorParts = array_pad(explode("|", $error, 2), 2, '');
                         [$errorCode, $errorMessage] = $errorParts;
 
                         $errorText = 'PROCESS_UNKNOWN_ERROR';
@@ -148,14 +158,9 @@ QUERY;
                         } elseif (!empty($errorMessage)) {
                             $errorText = $errorMessage;
                         }
-                        $process->addError(new Error(
-                            Translator::get(
-                                'process_errors',
-                                $errorText
-                            ),
-                            $orderId
-                        ));
+                        $errorTexts[] = Translator::get('process_errors', trim($errorText));
                     }
+                    $process->addError(new Error(implode('; ', $errorTexts), $orderId));
                 } finally {
                     $process->save();
                 }
@@ -165,12 +170,25 @@ QUERY;
         }
 
 
-        if ($process->getHandledCount() < $ordersCount) {
-            $process->addError(new Error("Было пропущено " . ($ordersCount - $process->getHandledCount()) . " заказов", null));
-        }
-
         $process->finish(true);
         $process->save();
+    }
+
+    private function getRequestErrorText(RequestException $exception): string
+    {
+        $response = $exception->getResponse();
+        $errorText = 'PROCESS_UNKNOWN_ERROR';
+
+        if ($response !== null && $response->getStatusCode() === 429) {
+            $errorText = 'PROCESS_TOO_MANY_REQUESTS_ERROR';
+            if (strpos((string)$response->getBody(), 'Too many updates of same entity.') !== false) {
+                $errorText = 'ORDER_CONCURRENT_UPDATE_ERROR';
+            }
+        } else {
+            captureException($exception);
+        }
+
+        return Translator::get('process_errors', $errorText);
     }
 
     private function applyOrderTransaction(string $orderId, int $targetStatus)
@@ -196,12 +214,12 @@ QUERY;
             ]
         ];
 
-        $response = $this->client->query($statusChangeMutation, ($variables));
+        $response = $this->client->query($statusChangeMutation, $variables);
 
         if ($response->hasErrors()) {
             foreach ($response->getErrors() as $error) {
-                $textCodeError = $error['extensions']['code'];
-                $messageError = $error['message'];
+                $textCodeError = $error['extensions']['code'] ?? '';
+                $messageError = $error['message'] ?? '';
                 $errors[] = "{$textCodeError}|{$messageError}";
             }
 

@@ -11,6 +11,14 @@
     ],
     "process_errors": [
         {
+            "source": "ORDER_CONCURRENT_UPDATE_ERROR",
+            "translated": "The order is being updated or was recently updated. Please try again later."
+        },
+        {
+            "source": "PROCESS_TOO_MANY_REQUESTS_ERROR",
+            "translated": "Too many requests. Please try again later."
+        },
+        {
             "source": "MAXIMUM_ORDERS_COUNT_EXCEEDED_ERROR {maximumOrdersCount}",
             "translated": "The number of selected orders exceeds the maximum ({maximumOrdersCount})"
         },
